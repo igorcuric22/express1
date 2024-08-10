@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Capture and Upload</title>
+    <style>
+        #videoElement {
+            width: 100%;
+            max-width: 600px;
+            border: 2px solid black;
+        }
+        #controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Webcam Capture and Upload</h1>
+    <video id="videoElement" autoplay></video>
+    <div id="controls">
+        <button id="startBtn">Start Recording</button>
+        <button id="stopBtn" disabled>Stop Recording</button>
+    </div>
+    <script>
+        const video = document.getElementById('videoElement');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        async function getMedia() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async function() {
+                    const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+                    const formData = new FormData();
+                    formData.append('video', blob, 'recorded_video.mp4');
+
+                    try {
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        if (response.ok) {
+                            alert('Video uploaded successfully');
+                        } else {
+                            alert('Failed to upload video');
+                        }
+                    } catch (error) {
+                        console.error('Error uploading video:', error);
+                    }
+                };
+            } catch (error) {
+                console.error('Error accessing media devices.', error);
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            recordedChunks = [];
+            mediaRecorder.start();
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        });
+
+        stopBtn.addEventListener('click', () => {
+            mediaRecorder.stop();
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        });
+
+        getMedia();
+    </script>
+</body>
+</html>

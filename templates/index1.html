@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch Data from Flask</title>
+</head>
+<body>
+    <h1>Data from Flask</h1>
+    <button id="get">Get</button>
+    <div id="getx">Getx</div>
+    <br>
+
+    <script>
+       document.querySelector("#get").addEventListener("click", async function fetchData() {
+           
+                const response = await fetch('http://192.168.1.114:4000/api/get',{
+                     method:'GET',
+                      headers:{
+                         'Content-Type':'application/json'
+                     },
+                 });
+             
+                const data= await response.json();
+
+                console.log(data);
+                document.getElementById('getx').innerText = JSON.stringify(data);
+           
+        });
+    
+        
+    </script>
+</body>
+</html>

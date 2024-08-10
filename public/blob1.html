@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Webcam Stream to Express Server</title>
+</head>
+<body>
+  <h1>Live Webcam Stream to Express Server</h1>
+  <video id="videoElement" width="640" height="480" autoplay></video>
+  <button id="startButton">Start Streaming</button>
+  <button id="stopButton">Stop Streaming</button>
+  
+  <script>
+    const videoElement = document.getElementById('videoElement');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    let mediaRecorder;
+    let chunks = [];
+
+    // Get access to webcam and start streaming
+    startButton.addEventListener('click', () => {
+      startButton.disabled = true;
+      stopButton.disabled = false;
+
+      navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        .then(function(stream) {
+          videoElement.srcObject = stream;
+          mediaRecorder = new MediaRecorder(stream);
+
+          mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+              chunks.push(event.data);
+              console.log(event.data);
+            }
+          };
+
+          mediaRecorder.start();
+        })
+        .catch(function(err) {
+          console.error('Error accessing media devices.', err);
+        });
+    });
+
+    // Stop streaming and send captured video to server
+    stopButton.addEventListener('click', () => {
+      startButton.disabled = false;
+      stopButton.disabled = true;
+
+      mediaRecorder.stop();
+
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const formData = new FormData();
+      formData.append('videoFile', blob);
+
+      fetch('/upload-video/', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.text())
+      .then(data => {
+        console.log('Response from server:', data);
+        alert('Video uploaded successfully!');
+        chunks = []; // Reset chunks for next recording
+      })
+      .catch(error => {
+        console.error('Error uploading video:', error);
+        alert('Error uploading video. Please try again.');
+        chunks = []; // Reset chunks for next recording
+      });
+    });
+  </script>
+</body>
+</html>

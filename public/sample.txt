@@ -1,0 +1,3 @@
+This is a sample text file.
+It is being served via the Express server.
+The pipe method is used to stream this content.

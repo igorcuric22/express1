@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Webcam Streaming to Server</title>
+</head>
+<body>
+  <h1>Webcam Streaming to Server</h1>
+  <video id="videoElement" width="640" height="480" autoplay></video>
+  <br>
+  <button id="startButton">Start Streaming</button>
+  <button id="stopButton" disabled>Stop Streaming</button>
+
+  <script>
+    const videoElement = document.getElementById('videoElement');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    let mediaRecorder;
+    let mediaChunks = [];
+    let chunkIndex = 0;
+
+    startButton.addEventListener('click', () => {
+      startButton.disabled = true;
+      stopButton.disabled = false;
+
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(function(stream) {
+          videoElement.srcObject = stream;
+          mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+          mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+              mediaChunks.push(event.data);
+            }
+          };
+
+          mediaRecorder.start();
+        })
+        .catch(function(err) {
+          console.error('Error accessing media devices.', err);
+        });
+    });
+
+    stopButton.addEventListener('click', () => {
+      startButton.disabled = false;
+      stopButton.disabled = true;
+
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        sendChunksToServer();
+      }
+    });
+
+    function sendChunksToServer() {
+      // Iterate through collected chunks and send them sequentially
+      mediaChunks.forEach((chunk, index) => {
+        sendChunkToServer(chunk, index);
+      });
+    }
+
+    function sendChunkToServer(chunk, index) {
+      const formData = new FormData();
+      formData.append('chunkIndex', index);
+      formData.append('videoChunk', chunk, `chunk_${index}.webm`);
+
+      fetch('/upload-video', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log(`Chunk ${index} sent successfully.`);
+      })
+      .catch(error => {
+        console.error(`Error sending chunk ${index}:`, error);
+      });
+    }
+  </script>
+</body>
+</html>

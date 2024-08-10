@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Capture and Real-Time Sharing</title>
+    <style>
+        #videoElement {
+            width: 100%;
+            max-width: 600px;
+            border: 2px solid black;
+        }
+        #receivedVideo {
+            width: 100%;
+            max-width: 600px;
+            border: 2px solid black;
+            margin-top: 20px;
+        }
+        #controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Webcam Capture and Real-Time Sharing</h1>
+    <video id="videoElement" autoplay></video>
+    <div id="controls">
+        <button id="startBtn">Start Recording</button>
+        <button id="stopBtn" disabled>Stop Recording</button>
+    </div>
+    <video id="receivedVideo" autoplay></video>
+    <script>
+        const video = document.getElementById('videoElement');
+        const receivedVideo = document.getElementById('receivedVideo');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        let mediaRecorder;
+        let recordedChunks = [];
+        const socket = new WebSocket('ws://localhost:3000');
+
+        async function getMedia() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                        socket.send(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = function() {
+                    const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+                    recordedChunks = [];
+                    // Optional: save the video blob locally or upload to the server
+                };
+            } catch (error) {
+                console.error('Error accessing media devices.', error);
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            recordedChunks = [];
+            mediaRecorder.start(100); // Collect data in 100ms chunks
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        });
+
+        stopBtn.addEventListener('click', () => {
+            mediaRecorder.stop();
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        });
+
+        socket.onmessage = function(event) {
+            const blob = new Blob([event.data], { type: 'video/mp4' });
+            receivedVideo.src = URL.createObjectURL(blob);
+        };
+
+        getMedia();
+    </script>
+</body>
+</html>

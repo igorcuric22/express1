@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Stream Capture</title>
+</head>
+<body>
+    <h1>Webcam Stream Capture</h1>
+    <video id="webcam" autoplay></video>
+    <button id="startButton">Start Capture</button>
+
+    <script>
+
+        // Select the video element and the start button
+        const videoElement = document.getElementById('webcam');
+        const startButton = document.getElementById('startButton');
+
+        // Function to start the video stream
+        async function startVideoStream() {
+            try {
+                // Request access to the webcam
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                
+                // Set the video element's source to the stream
+                videoElement.srcObject = stream;
+            } catch (error) {
+                console.error('Error accessing the webcam: ', error);
+            }
+        }
+
+        // Add event listener to the start button
+        startButton.addEventListener('click', startVideoStream);
+
+
+    </script>
+    
+</body>
+</html>

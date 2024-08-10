@@ -1,0 +1,87 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Media Source Example</title>
+</head>
+<body>
+    <video controls width="600"></video>
+
+    <script>
+        const mediaSource = new MediaSource();
+        const video = document.querySelector('video');
+        const mediaSourceURL = URL.createObjectURL(mediaSource);
+        video.src = mediaSourceURL;
+
+        mediaSource.addEventListener('sourceopen', function () {
+            const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+            
+            fetch('/media/videox1.mp4')
+                .then(response => response.arrayBuffer())
+                .then(data => {
+                    sourceBuffer.appendBuffer(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching or appending media segment:', error);
+                });
+
+            sourceBuffer.addEventListener('updateend', function () {
+                if (!video.playing) {
+                    video.play();
+                }
+            });
+        });
+    </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Media Source Example</title>
+</head>
+<body>
+    <video controls width="600"></video>
+    <button id="playButton">Load and Play Video</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const video = document.querySelector('video');
+            const playButton = document.getElementById('playButton');
+            const mediaSource = new MediaSource();
+            let sourceBuffer;
+
+            playButton.addEventListener('click', () => {
+                video.src = URL.createObjectURL(mediaSource);
+
+                mediaSource.addEventListener('sourceopen', () => {
+                    sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+
+                    fetch('/media/videox1.mp4')
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.arrayBuffer();
+                        })
+                        .then(data => {
+                            sourceBuffer.appendBuffer(data);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching or appending media segment:', error);
+                        });
+
+                    sourceBuffer.addEventListener('updateend', () => {
+                        if (!video.paused && !sourceBuffer.updating && mediaSource.readyState === 'open') {
+                            video.play().catch(error => {
+                                console.error('Error attempting to play the video:', error);
+                            });
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
+

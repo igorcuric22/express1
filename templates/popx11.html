@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+
+        table {
+            width:100%;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+            border-radius: 2px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #D6EEEE;
+        }
+
+        th:nth-child(even),td:nth-child(even) {
+            background-color: rgba(150, 212, 212, 0.4);
+        }
+
+        tr:hover {
+            background-color: #D6EEEE;
+            cursor: pointer;
+        }
+
+        div#getx {
+            overflow-x: auto;
+            height: 200px;
+        }
+</style>
+    
+</head>
+
+<body>
+
+<button id="get">Get</button>
+<div id="getx">Getx</div>
+<br>
+
+<script>
+
+
+
+
+    document.querySelector("#get").addEventListener("click",async function (){
+        //const id=document.querySelector("#gettext").value;
+    
+        const res=await fetch(`/api/get/`,{
+            method:'GET',
+            headers:{
+                'Content-Type':'application/json'
+        },
+    });
+    
+    const data=await res.json();
+    console.log(data);
+
+
+    let str="<table>";
+    for(let i=0;i<data.length;i++)
+    {
+        str+="<tr>";
+        str+="<td>"+data[i].id+"</td><td>"+data[i].name+"</td>";
+        str+="</tr>";
+    }
+    str+="</table>";
+    
+    document.querySelector("#getx").innerHTML=str;
+    
+    });
+    </script>
+
+<input type="text" id="gettext1" value="1">
+<button id="get1">Get</button>
+<div id="getx1">Getx</div>
+<br>
+
+<script>
+    document.querySelector("#get1").addEventListener("click",async function (){
+        const id=document.querySelector("#gettext1").value;
+        const user={
+            id:id,
+        };
+        
+        const res=await fetch(`/api/get/${id}`,{
+            method:'GET', 
+            headers:{
+                'Content-Type':'application/json'
+        },
+       
+    });
+    
+    const data=await res.json();
+    console.log(data);
+
+
+    let str="<table>";
+    for(let i=0;i<data.length;i++)
+    {
+        str+="<tr>";
+        str+="<td>"+data[i].id+"</td><td>"+data[i].name+"</td>";
+        str+="</tr>";
+    }
+    str+="</table>";
+    
+    document.querySelector("#getx1").innerHTML=str;
+    
+    });
+    </script>
+
+
+<p><a href="http://192.168.1.114:4000">Reload</a></p>
+
+</body>
+</html>

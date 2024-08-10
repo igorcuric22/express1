@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Webcam Streaming to Server</title>
+</head>
+<body>
+  <h1>Webcam Streaming to Server</h1>
+  <video id="videoElement" width="640" height="480" autoplay></video>
+  <br>
+  <button id="startButton">Start Streaming</button>
+  <button id="stopButton" disabled>Stop Streaming</button>
+  <h2>Live Broadcast</h2>
+  <video id="broadcastElement" width="640" height="480" autoplay></video>
+
+  <script>
+    const videoElement = document.getElementById('videoElement');
+    const broadcastElement = document.getElementById('broadcastElement');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    let mediaRecorder;
+    let chunkIndex = 0;
+
+    startButton.addEventListener('click', () => {
+      startButton.disabled = true;
+      stopButton.disabled = false;
+
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(function(stream) {
+          videoElement.srcObject = stream;
+          mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+          mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+              sendChunkToServer(event.data, chunkIndex);
+              chunkIndex++;
+            }
+          };
+
+          mediaRecorder.start(1000); // Collect 1-second chunks
+        })
+        .catch(function(err) {
+          console.error('Error accessing media devices.', err);
+        });
+    });
+
+    stopButton.addEventListener('click', () => {
+      startButton.disabled = false;
+      stopButton.disabled = true;
+
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    });
+
+    function sendChunkToServer(chunk, index) {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const base64data = reader.result.split(',')[1]; // Get base64 data
+
+        fetch('/upload-video', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ chunkIndex: index, base64data })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log(`Chunk ${index} sent successfully.`);
+        })
+        .catch(error => {
+          console.error(`Error sending chunk ${index}:`, error);
+        });
+      };
+      reader.readAsDataURL(chunk);
+    }
+
+    // Set up Server-Sent Events
+    if (typeof(EventSource) !== "undefined") {
+      const source = new EventSource('/stream-video');
+      source.onmessage = function(event) {
+        const videoData = JSON.parse(event.data);
+        const chunkBuffer = Uint8Array.from(atob(videoData.chunk), c => c.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([chunkBuffer], { type: 'video/webm' }));
+        broadcastElement.src = url;
+      };
+    } else {
+      console.error("Your browser does not support Server-Sent Events.");
+    }
+  </script>
+</body>
+</html>
